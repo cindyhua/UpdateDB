@@ -16,7 +16,9 @@ std::ostream & operator<<(std::ostream & os, const Data & data)
 	return os;
 }
 
-uint32_t Data::_size = 0;
+size_t Data::_size = 0;
+
+size_t TigerData::_size = 0;
 DataField  DataField::nullDataField;
 
 Data Data::nullData;

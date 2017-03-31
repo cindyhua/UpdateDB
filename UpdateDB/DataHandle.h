@@ -17,7 +17,11 @@
 
 
 #define debug_msg(msg) cout << "[" <<__FUNCTION__ <<"]"<<"[L"<<__LINE__<<"]"<<endl<<"\t--"<< msg << endl;
-#define column_add(name,type,size,isnull,defaultvalue) fields.insert(fields.cbegin(),std::make_pair(#name, DataField(#name,#type,size,isnull,defaultvalue)));
+#define column_add(name,type,size,isnull,defaultvalue) \
+	fields.insert(fields.cbegin(),std::make_pair(#name, DataField(#name,#type,size,isnull,defaultvalue)));\
+	//Data::_size += (it->second).size();\
+
+
 class Data;
 class DataField {
 public:
@@ -100,7 +104,8 @@ public:
 
 	//	return *this;
 	//}
-
+	//static DataField* pt = &test.fields["WorkDesc1"];
+	//DataField* operator=(map<string, DataField>)
 
 
 	~DataField(){
@@ -144,10 +149,10 @@ public:
 	virtual ~Data() {};
 	friend std::ostream& operator<<(std::ostream& os, const Data& data);
 	size_t itemCount() { return fields.size(); };//包含的子列数
-	static uint32_t size() {
+	static size_t size() {
 		return _size;
 	};
-	static uint32_t _size;//所有子列的占的内存大小
+	static size_t _size;//所有子列的占的内存大小
 	map<string, DataField> fields;
     DataField& operator[](string key);
 	//Data& operator=(const char* value);
@@ -164,7 +169,7 @@ public:
 		return true;
 	};
 
-	bool countSize() {
+	virtual bool countSize() {
 		Data::_size = 0;
 		for (map<string, DataField>::iterator it = fields.begin(); it != fields.end(); it++)
 		{
@@ -205,6 +210,7 @@ inline  DataField & Data::operator[](string key)
 
  class TigerData :public Data
  {
+	 static size_t _size;
  public:
 	 TigerData() {
 		 column_add(USERID, INT, 10, false, "");
@@ -214,10 +220,18 @@ inline  DataField & Data::operator[](string key)
 		 countSize();
 	 };
 	 ~TigerData() {};
+	 virtual bool countSize() {
 
+		 if (TigerData::_size > 0) return true;
+		 if (TigerData::_size < 0) TigerData::_size = 0;
+		 for (map<string, DataField>::iterator it = fields.begin(); it != fields.end(); it++)
+		 {
+			 TigerData::_size += (it->second).size();
+		 }
+		 return true;
+	 }
 
  };
-
 
  class TigerWorkData :public Data
  {
@@ -255,43 +269,26 @@ public:
 	char*		_pEnd;
 	size_t		_len;
 	string		_file;
-	uint32_t	_filesize;
+	size_t		_filesize;
 	std::ifstream* _ifs;
 	std::ofstream* _ofs;
 	
 	void setDataCharSet(char datacharset) { _dataCharSet = datacharset; };
 	void setFieldCharSet(char fieldcharset) { _fieldCharSet = fieldcharset; }
 	uint32_t length() const { return _len; };
-	void ini() {
-		
-	};
+
 	//Read
 	bool parse(const char* pbegin, const char* pend, T& data) {
-
-		//if (ifs.is_open())	ifs.close();
-
-		//ifs.open(file, std::ifstream::binary);
-		//if (!ifs.is_open())
-		//{
-		//	//errlog("Fail to open File:%s",file);
-		//	return false;
-		//}
-
-		// get size of file
-		//ifs.seekg(0, infile.end);
-		//_filesize = ifs.tellg();
-		//ifs.seekg(0);
-		// allocate memory for file content
 
 		_filesize = pend - pbegin;
 		if (_pReadBuffer)	free(_pReadBuffer), _pReadBuffer = NULL;
 		_pReadBuffer = (char*)malloc(_filesize+1);
+		memset(_pReadBuffer, '\0', _filesize + 1);
 		memcpy(_pReadBuffer, pbegin, _filesize);
-		_pReadBuffer[_filesize + 1] = '\0;'
-		// read content of infile
-		//ifs.read(_pReadBuffer, size);
-		_file = file;
+
 		_data = &data;
+		_pCurr = _pReadBuffer;
+		_pEnd = _pReadBuffer + _filesize;
 		return true;
 	};
 	bool getValue();
@@ -304,12 +301,6 @@ public:
 		_ofs = &ofs;
 		char *p = (char*)malloc(_buffersize + 1);
 		_writeType = 1;
-		//if (_pWriteBuffer) free(_pWriteBuffer), _pWriteBuffer = NULL;
-		//_pWriteBuffer = (char*)malloc(_buffersize + 1);
-		//memset(_pWriteBuffer, '\0', _buffersize + 1);
-		//_pCurr = _pWriteBuffer;
-		//_pEnd = _pWriteBuffer + _buffersize;
-
 		return setWriteBuffer(p, _buffersize);
 	}
 
@@ -319,26 +310,6 @@ public:
 		return setWriteBuffer(p, size);
 	}
 
-	/*
-	DataHandle<TigerWorkData> dh1;
-	TigerWorkData twd;
-	TigerData td;
-
-	DataHandle<TigerData> dh2;
-	ofstream ofs;
-	ofs.open("tmp");
-	dh2.writeTo(ofs)
-	dh1.writeTo(td["WorkDesc"].val(),td["WorkDesc"].size());
-	while(database->fetchNext())
-	{
-	twd["workid"] ="1232";
-	twd["company"] = "51job";
-	dh1.putValue(twd);
-	dh2.putValue(td);
-
-	*/
-
-
 
 	bool flush()
 	{
@@ -347,6 +318,7 @@ public:
 		return true;
 	}
 	bool setWriteBuffer(char* p,size_t size) {
+		assert(p);
 		if (!p)
 		{
 			//errlog("分配空间失败")
@@ -416,7 +388,7 @@ public:
 		return true;
 	}
 
-	void reSet()
+	void ini()
 	{
 		_buffersize = T::size() * (MAX_DATA_BUFFER_COUNT + 10);
 		if (_buffersize > MAX_BUFFER_SIZE) _buffersize = MAX_BUFFER_SIZE;
@@ -439,7 +411,7 @@ public:
 template <typename T>
 CDataHandle<T>::CDataHandle()
 {
-	reSet();
+	ini();
 }
 
 template <typename T>
@@ -463,24 +435,33 @@ inline bool CDataHandle<T>::getValue()
 {
 	if (_data == NULL) return false;
 	_data->clean();
-	if (_pCurr > _pEnd) return false;
+	assert(_pCurr && _pEnd);
+	if (_pCurr >= _pEnd) return false;
 	char* pos = NULL;
-	for (DataField& it = _data->begin(); ! _data->end(); it == _data->next())
+	//for (DataField& it = _data->begin(); ! _data->end(); it = _data->next())
+	for (DataField* it = &(_data->begin()); !_data->end(); it = &(_data->next()))
 	{
-		if (_pCurr > _pEnd) return false;
-		pos = strctr(_pCurr, _fieldCharSet);
-		if (pos)
+		if (_pCurr >= _pEnd) return false;
+		pos = strchr(_pCurr, _fieldCharSet);
+		if (!pos) 
 		{
-			uint32_t len = pos - pCurr;
+			_pCurr = _pEnd;
+			return false;
+		};
+		size_t len = pos - _pCurr;
 			assert(len > 0);
-			if (len > it.size()) len = it.size();
-			memcpy(it.pvalue, pCurr, len);
-			pCurr = pos + 1;
-		}
+			if (len > it->size()) len = it->size();
+			memcpy(it->pvalue, _pCurr, len);
+			_pCurr = pos + 1;
+
 	}
-	pos = strctr(pCurr, _dataCharSet);
-	if (pos == NULL) _pCurr = _pEnd ;
-	pCurr = pos + 1;
+	pos = strchr(_pCurr, _dataCharSet);
+	if (!pos)
+	{
+		_pCurr = _pEnd;
+		return false;//如果是一个不完整的记录，已经保存部分字段，是否算完整记录？
+	}
+	_pCurr = pos + 1;
 	return true;
 }
 
