@@ -135,26 +135,30 @@ public:
 };
 
 
+
+
 class Data
 {
+
+	//friend bool initSizeT<Data>();
 public:
 
 	static Data nullData;
 	Data() {
 		debug_msg(*this);
 
-		countSize();
+		//countSize();
 		_itCurr = fields.begin();
 	};
 	virtual ~Data() {};
 	friend std::ostream& operator<<(std::ostream& os, const Data& data);
 	size_t itemCount() { return fields.size(); };//包含的子列数
-	static size_t size() {
-		return _size;
-	};
+	//static size_t size() {
+	//	return _size;
+	//};
 	static size_t _size;//所有子列的占的内存大小
 	map<string, DataField> fields;
-    DataField& operator[](string key);
+	DataField& operator[](string key);
 	//Data& operator=(const char* value);
 	virtual bool iniByFmtFile(const char* file) {
 
@@ -169,13 +173,13 @@ public:
 		return true;
 	};
 
-	virtual bool countSize() {
-		Data::_size = 0;
+	size_t countSize() {
+		size_t s = 0;
 		for (map<string, DataField>::iterator it = fields.begin(); it != fields.end(); it++)
 		{
-			Data::_size += (it->second).size();
+			s+= (it->second).size();
 		}
-		return true;
+		return s;
 	}
 	map<string, DataField>::iterator _itCurr;
 	DataField& begin() {
@@ -205,7 +209,13 @@ inline  DataField & Data::operator[](string key)
 	
 }
 
-
+template<typename T>
+bool initSizeT()
+{
+	if (T::_size > 0) return true;
+	if (T::_size < 0) T::_size = 0;
+	T::_size = countSize();
+}
 
 
  class TigerData :public Data
@@ -217,34 +227,42 @@ inline  DataField & Data::operator[](string key)
 		 column_add(CNAME, STRING, 50, true, "");
 		 column_add(SCHOOL, STRING, 1000, true, "");
 		 column_add(WorkDesc, STRING, 1000, true, "");
-		 countSize();
+		 //initSizeT<TigerData>();
+		 initSize();
 	 };
 	 ~TigerData() {};
-	 virtual bool countSize() {
-
-		 if (TigerData::_size > 0) return true;
-		 if (TigerData::_size < 0) TigerData::_size = 0;
-		 for (map<string, DataField>::iterator it = fields.begin(); it != fields.end(); it++)
-		 {
-			 TigerData::_size += (it->second).size();
-		 }
+	 bool initSize() {
+		 if (_size > 0) return true;
+		 if (_size < 0) _size = 0;
+		 _size = countSize();
 		 return true;
 	 }
-
+	 static size_t size() {
+		 return _size;
+	 };
  };
 
  class TigerWorkData :public Data
  {
+	 static size_t _size;
  public:
 	 TigerWorkData() {
 		 column_add(WORKID, INT, 10, false, "");
 		 column_add(COMPANY, STRING, 1000, true, "");
 		 column_add(POSITION, STRING, 1000, true, "");
-		 countSize();
+		 initSize();
 	 };
 	 ~TigerWorkData() {};
+	 bool initSize() {
 
-
+		 if (_size > 0) return true;
+		 if (_size < 0) _size = 0;
+		 _size = countSize();
+		 return true;
+	 }
+	 static size_t size() {
+		 return _size;
+	 };
  };
 
 
@@ -374,18 +392,18 @@ public:
 		memset(_pWriteBuffer, '\0', _buffersize + 1);
 	}
 
-	bool _putValue(char** p, const char* pvalue, size_t len)
+	size_t _putValue(char** p, const char* pvalue, size_t len)
 	{
 		//再填充要超出填充区大小
 		if (_len + len > _buffersize)
 		{
 			len = _buffersize - _len;
-			return false;
+			return len;//注释掉代表继续同步，直到填充满
 		}
 		memcpy(*p, pvalue, len);
 		*p += len;
 		_len += len;
-		return true;
+		return len;
 	}
 
 	void ini()
@@ -417,11 +435,6 @@ CDataHandle<T>::CDataHandle()
 template <typename T>
 CDataHandle<T>::~CDataHandle()
 {
-	//if (_ofs->is_open())
-	//{
-	//	//TODO:写文件
-	//	_ofs->write(_pWriteBuffer, _len);
-	//}
 	if (_writeType!=2 && _pWriteBuffer)
 	{
 		free(_pWriteBuffer);
