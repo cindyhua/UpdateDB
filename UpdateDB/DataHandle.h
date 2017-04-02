@@ -270,49 +270,51 @@ static TigerData test;
 static DataField* pt = &test.fields["WorkDesc1"];
 
 
-template <typename T>
-class CDataHandle
-{
+
+template<typename T>
+class Writer {
 public:
-	CDataHandle();
-	~CDataHandle();
+	Writer()
+	{
+		ini();
+	};
+	~Writer() {
+		if (_writeType != 2 && _pWriteBuffer)
+		{
+			free(_pWriteBuffer);
+			_pWriteBuffer = NULL;
+		}
+	};
 	T*			_data;
 	char		_dataCharSet;
 	char		_fieldCharSet;
 	char*		_pWriteBuffer;
 	int			_writeType;
-	char*		_pReadBuffer;
 	size_t		_buffersize;
 	char*		_pCurr;
 	char*		_pEnd;
 	size_t		_len;
-	string		_file;
-	size_t		_filesize;
-	std::ifstream* _ifs;
 	std::ofstream* _ofs;
-	
+
 	void setDataCharSet(char datacharset) { _dataCharSet = datacharset; };
 	void setFieldCharSet(char fieldcharset) { _fieldCharSet = fieldcharset; }
 	uint32_t length() const { return _len; };
 
-	//Read
-	bool parse(const char* pbegin, const char* pend, T& data) {
-
-		_filesize = pend - pbegin;
-		if (_pReadBuffer)	free(_pReadBuffer), _pReadBuffer = NULL;
-		_pReadBuffer = (char*)malloc(_filesize+1);
-		memset(_pReadBuffer, '\0', _filesize + 1);
-		memcpy(_pReadBuffer, pbegin, _filesize);
-
-		_data = &data;
-		_pCurr = _pReadBuffer;
-		_pEnd = _pReadBuffer + _filesize;
-		return true;
-	};
-	bool getValue();
-	bool end() {
-		return _pCurr > _pEnd;
+	void ini()
+	{
+		_buffersize = T::size() * (MAX_DATA_BUFFER_COUNT + 10);
+		if (_buffersize > MAX_BUFFER_SIZE) _buffersize = MAX_BUFFER_SIZE;
+		_pWriteBuffer = NULL;
+		_pCurr = NULL;
+		_pEnd = NULL;
+		_dataCharSet = '\x16';
+		_fieldCharSet = '\x10';
+		_data = NULL;
+		_len = 0;
+		_ofs = NULL;
+		_writeType = 0;
 	}
+
 	//write
 	bool writeTo(std::ofstream& ofs)
 	{
@@ -322,7 +324,7 @@ public:
 		return setWriteBuffer(p, _buffersize);
 	}
 
-	bool writeTo(char* p,size_t size)
+	bool writeTo(char* p, size_t size)
 	{
 		_writeType = 2;
 		return setWriteBuffer(p, size);
@@ -332,10 +334,9 @@ public:
 	bool flush()
 	{
 		_write();
-		//if (ofs.is_open()) ofs.close();
 		return true;
 	}
-	bool setWriteBuffer(char* p,size_t size) {
+	bool setWriteBuffer(char* p, size_t size) {
 		assert(p);
 		if (!p)
 		{
@@ -352,10 +353,10 @@ public:
 		_pEnd = _pWriteBuffer + _buffersize;
 		return true;
 	}
-	char* putValue(T& data,bool forced = false){
+	char* putValue(T& data, bool forced = false) {
 		assert(_writeType && _pCurr && _pWriteBuffer);
 		char* pStart = _pCurr;
-		if  (_len + T::size() > _buffersize)
+		if (_len + T::size() > _buffersize)
 		{
 			//缓冲区满，不再追加信息
 			//T::size()代表的是传入的data的最大长度，如果没有满，则应该往里面填充，就算超出了，也分为完整截断和尽可能填充两种情况
@@ -365,16 +366,16 @@ public:
 			//}
 			//写文件
 			_write();
-	
+
 
 		}
 
-		for (DataField* it = &(data.begin()); !data.end(); it=&(data.next()))
+		for (DataField* it = &(data.begin()); !data.end(); it = &(data.next()))
 		{
-			_putValue(&_pCurr, it->pvalue,strlen(it->pvalue));
-			_putValue(&_pCurr, &_fieldCharSet,1);
+			_putValue(&_pCurr, it->pvalue, strlen(it->pvalue));
+			_putValue(&_pCurr, &_fieldCharSet, 1);
 		}
-		_putValue(&_pCurr, &_dataCharSet,1);
+		_putValue(&_pCurr, &_dataCharSet, 1);
 
 
 		if (forced)
@@ -385,7 +386,7 @@ public:
 	//写文件
 	void _write()
 	{
-		if(_writeType ==1 && _ofs->is_open()) _ofs->write(_pWriteBuffer, _len);
+		if (_writeType == 1 && _ofs->is_open()) _ofs->write(_pWriteBuffer, _len);
 		//复原
 		_len = 0;
 		_pCurr = _pWriteBuffer;
@@ -406,11 +407,40 @@ public:
 		return len;
 	}
 
+};
+
+
+template <typename T>
+class Reader
+{
+public:
+	Reader() {
+		ini();
+	};
+	~Reader() {
+		if (_pReadBuffer) free(_pReadBuffer), _pReadBuffer = NULL;
+	};
+
+	T*			_data;
+	char		_dataCharSet;
+	char		_fieldCharSet;
+	char*		_pReadBuffer;
+	size_t		_buffersize;
+	char*		_pCurr;
+	char*		_pEnd;
+	size_t		_len;
+	string		_file;
+	size_t		_filesize;
+	std::ifstream* _ifs;
+
+	void setDataCharSet(char datacharset) { _dataCharSet = datacharset; };
+	void setFieldCharSet(char fieldcharset) { _fieldCharSet = fieldcharset; }
+	uint32_t length() const { return _len; };
+
 	void ini()
 	{
 		_buffersize = T::size() * (MAX_DATA_BUFFER_COUNT + 10);
 		if (_buffersize > MAX_BUFFER_SIZE) _buffersize = MAX_BUFFER_SIZE;
-		_pWriteBuffer = NULL;
 		_pReadBuffer = NULL;
 		_pCurr = NULL;
 		_pEnd = NULL;
@@ -420,61 +450,70 @@ public:
 		_len = 0;
 		_file = "";
 		_filesize = 0;
-		_ofs = NULL;
 		_ifs = NULL;
-		_writeType = 0;
+
 	}
-};
 
-template <typename T>
-CDataHandle<T>::CDataHandle()
-{
-	ini();
-}
+	//Read
+	bool parse(const char* pbegin, const char* pend, T& data) {
 
-template <typename T>
-CDataHandle<T>::~CDataHandle()
-{
-	if (_writeType!=2 && _pWriteBuffer)
+		_filesize = pend - pbegin;
+		if (_pReadBuffer)	free(_pReadBuffer), _pReadBuffer = NULL;
+		_pReadBuffer = (char*)malloc(_filesize + 1);
+		memset(_pReadBuffer, '\0', _filesize + 1);
+		memcpy(_pReadBuffer, pbegin, _filesize);
+
+		_data = &data;
+		_pCurr = _pReadBuffer;
+		_pEnd = _pReadBuffer + _filesize;
+		return true;
+	};
+	bool getValue()
 	{
-		free(_pWriteBuffer);
-		_pWriteBuffer = NULL;
-	}
-	if (_pReadBuffer) free(_pReadBuffer), _pReadBuffer = NULL;
-}
-
-template<typename T>
-inline bool CDataHandle<T>::getValue()
-{
-	if (_data == NULL) return false;
-	_data->clean();
-	assert(_pCurr && _pEnd);
-	if (_pCurr >= _pEnd) return false;
-	char* pos = NULL;
-	//for (DataField& it = _data->begin(); ! _data->end(); it = _data->next())
-	for (DataField* it = &(_data->begin()); !_data->end(); it = &(_data->next()))
-	{
+		if (_data == NULL) return false;
+		_data->clean();
+		assert(_pCurr && _pEnd);
 		if (_pCurr >= _pEnd) return false;
-		pos = strchr(_pCurr, _fieldCharSet);
-		if (!pos) 
+		char* pos = NULL;
+		char* pend = strchr(_pCurr, _dataCharSet);//先求得截止位置，以免出现调到下一条记录取field的情况
+		//for (DataField& it = _data->begin(); ! _data->end(); it = _data->next())
+		for (DataField* it = &(_data->begin()); !_data->end(); it = &(_data->next()))
 		{
-			_pCurr = _pEnd;
-			return false;
-		};
-		size_t len = pos - _pCurr;
+			if (_pCurr >= _pEnd) return false;
+			
+			pos = strchr(_pCurr, _fieldCharSet);
+			if (!pos)
+			{
+				_pCurr = _pEnd;
+				return false;
+			};
+			if (pos > pend) break;//已经调到下一个记录了;
+			size_t len = pos - _pCurr;
 			assert(len > 0);
 			if (len > it->size()) len = it->size();
 			memcpy(it->pvalue, _pCurr, len);
 			_pCurr = pos + 1;
 
+		}
+		pos = strchr(_pCurr, _dataCharSet);
+		if (!pos)
+		{
+			_pCurr = _pEnd;
+			return false;//如果是一个不完整的记录，已经保存部分字段，是否算完整记录？
+		}
+		_pCurr = pos + 1;
+		return true;
+	};
+	bool end() {
+		return _pCurr > _pEnd;
 	}
-	pos = strchr(_pCurr, _dataCharSet);
-	if (!pos)
-	{
-		_pCurr = _pEnd;
-		return false;//如果是一个不完整的记录，已经保存部分字段，是否算完整记录？
-	}
-	_pCurr = pos + 1;
-	return true;
-}
+};
+
+
+static Writer<TigerData> w;
+
+
+
+static Reader<TigerData> r;
+
 
