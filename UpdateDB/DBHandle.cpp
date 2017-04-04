@@ -2,11 +2,3 @@
 #include "DBHandle.h"
 
 
-CDBHandle::CDBHandle()
-{
-}
-
-
-CDBHandle::~CDBHandle()
-{
-}

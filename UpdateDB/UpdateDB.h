@@ -2,10 +2,10 @@
 
 
 static CIniParam gConfig;
-CDBHandle* gDBThread;
-CDBHandle* gDBSrc;
-CDBHandle* gDBDest;
-CDBHandle* gDBLog;
+//CDBHandle* gDBThread;
+//CDBHandle* gDBSrc;
+//CDBHandle* gDBDest;
+//CDBHandle* gDBLog;
 
 string gDataStart;
 string gDataEnd;

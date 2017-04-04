@@ -3,38 +3,33 @@
 
 
 
+CIniParam CIniParam::nullCIniParam;
 
 
-CIniParam::CIniParam()
+
+CIniParam::CIniParam(const string filename)
 {
-
 }
 
 CIniParam::~CIniParam()
 {
 }
 
-bool CIniParam::reSet(const string filename)
-{
-	return false;
-}
 
-bool CIniParam::init(const string filename)
-{
-	return false;
-}
-
-
-
-bool CIniParam::loadConfig()
+bool CIniParam::loadConfig(const string filename)
 {
 
 	return false;
 }
-
-const char * CIniParam::operator[](const char* key) const
+//INI["USERNAME"],INI["PWD"]
+//INI["USERNAME"]="51JOB";
+const char* CIniParam::operator[](const char* key) const
 {
-
+	map<string, string>::const_iterator it = _items.lower_bound(key);
+	if (it != _items.cend())
+	{
+		return (it->second).c_str();
+	}
 	return nullptr;
 }
 
@@ -71,6 +66,8 @@ bool CIniParam::write(const char* key, const char* value)
 {
 	return false;
 }
+
+
 
 
 

@@ -120,15 +120,15 @@ public:
 		memset(pvalue, '\0', _realsize+1);
 		
 	};
-	char* val()
+	char* val() const
 	{
 		return pvalue;
 	}
-	uint32_t size() { return _realsize; };
+	size_t	size() const { return _realsize; };
 	string	name;
 	string	type;
-	uint32_t _size;
-	uint32_t _realsize;
+	size_t	_size;
+	size_t	_realsize;
 	bool	isnull;
 	string	defaultvalue;
 	char*	pvalue;
@@ -152,10 +152,10 @@ public:
 	};
 	virtual ~Data() {};
 	friend std::ostream& operator<<(std::ostream& os, const Data& data);
-	size_t itemCount() { return fields.size(); };//包含的子列数
-	//static size_t size() {
-	//	return _size;
-	//};
+	size_t itemCount() const { return fields.size(); };//包含的子列数
+	static size_t size() {
+		return _size;
+	};
 	static size_t _size;//所有子列的占的内存大小
 	map<string, DataField> fields;
 	DataField& operator[](string key);
@@ -279,7 +279,7 @@ public:
 		ini();
 	};
 	~Writer() {
-		if (_writeType != 2 && _pWriteBuffer)
+		if (_pWriteBuffer)
 		{
 			free(_pWriteBuffer);
 			_pWriteBuffer = NULL;
@@ -295,10 +295,13 @@ public:
 	char*		_pEnd;
 	size_t		_len;
 	std::ofstream* _ofs;
+	bool		_isStrictModel;//严格模式，如果不是一个完整的记录，则不写入或读入
 
 	void setDataCharSet(char datacharset) { _dataCharSet = datacharset; };
 	void setFieldCharSet(char fieldcharset) { _fieldCharSet = fieldcharset; }
 	uint32_t length() const { return _len; };
+	void setStrickModel() { _isStrictModel = true };
+	void unsetStrickModel() { _isStrictModel = false };
 
 	void ini()
 	{
@@ -313,13 +316,19 @@ public:
 		_len = 0;
 		_ofs = NULL;
 		_writeType = 0;
+		_isStrictModel = false;
 	}
 
 	//write
 	bool writeTo(std::ofstream& ofs)
 	{
 		_ofs = &ofs;
-		char *p = (char*)malloc(_buffersize + 1);
+		char *p = (char*)malloc(_buffersize + 1)
+		if (!p)
+		{
+			//errlog("分配空间失败")
+			return false;
+		}
 		_writeType = 1;
 		return setWriteBuffer(p, _buffersize);
 	}
@@ -358,6 +367,7 @@ public:
 		char* pStart = _pCurr;
 		if (_len + T::size() > _buffersize)
 		{
+			if (_isStrictModel) return pStart;
 			//缓冲区满，不再追加信息
 			//T::size()代表的是传入的data的最大长度，如果没有满，则应该往里面填充，就算超出了，也分为完整截断和尽可能填充两种情况
 			//if (_writeType == 2)
@@ -399,7 +409,7 @@ public:
 		if (_len + len > _buffersize)
 		{
 			len = _buffersize - _len;
-			return len;//注释掉代表继续同步，直到填充满
+			if(_isStrictModel) return len;//注释掉代表继续同步，直到填充满
 		}
 		memcpy(*p, pvalue, len);
 		*p += len;
@@ -432,10 +442,14 @@ public:
 	string		_file;
 	size_t		_filesize;
 	std::ifstream* _ifs;
+	bool		_isStrictModel;//严格模式，如果不是一个完整的记录，则不写入或读入
 
 	void setDataCharSet(char datacharset) { _dataCharSet = datacharset; };
 	void setFieldCharSet(char fieldcharset) { _fieldCharSet = fieldcharset; }
 	uint32_t length() const { return _len; };
+	void setStrickModel() { _isStrictModel = true };
+	void unsetStrickModel() { _isStrictModel = false };
+
 
 	void ini()
 	{
@@ -451,23 +465,49 @@ public:
 		_file = "";
 		_filesize = 0;
 		_ifs = NULL;
+		_isStrictModel = false;
+	}
 
+	void reSet()
+	{
+		if (_pReadBuffer) free(_pReadBuffer), _pReadBuffer = NULL;
+		ini();
 	}
 
 	//Read
-	bool parse(const char* pbegin, const char* pend, T& data) {
-
+	bool parse(char* pbegin, char* pend, T& data) {
+		_data = &data;
 		_filesize = pend - pbegin;
+
+
+		//if (_pReadBuffer)	free(_pReadBuffer), _pReadBuffer = NULL;
+		//_pReadBuffer = (char*)malloc(_filesize + 1);
+		//memset(_pReadBuffer, '\0', _filesize + 1);
+		//memcpy(_pReadBuffer, pbegin, _filesize);
+		//_pCurr = _pReadBuffer;
+		//_pEnd = _pReadBuffer + _filesize;
+		_pCurr = pbegin;
+		_pEnd = pend;
+
+		return true;
+	};
+	bool parse(std::ifstream& ifs, T& data)
+	{
+		//get size of file
+		ifs.seekg(0, ifs.end);
+		_filesize = ifs.tellg();
+		ifs.seekg(0);
+		//// allocate memory for file content
 		if (_pReadBuffer)	free(_pReadBuffer), _pReadBuffer = NULL;
 		_pReadBuffer = (char*)malloc(_filesize + 1);
 		memset(_pReadBuffer, '\0', _filesize + 1);
-		memcpy(_pReadBuffer, pbegin, _filesize);
+		//// read data as a block:
+		ifs.read(_pReadBuffer, _filesize);
 
-		_data = &data;
-		_pCurr = _pReadBuffer;
-		_pEnd = _pReadBuffer + _filesize;
+		parse(_pReadBuffer, _pReadBuffer + _filezise, data);
 		return true;
-	};
+	}
+
 	bool getValue()
 	{
 		if (_data == NULL) return false;
@@ -475,8 +515,18 @@ public:
 		assert(_pCurr && _pEnd);
 		if (_pCurr >= _pEnd) return false;
 		char* pos = NULL;
-		char* pend = strchr(_pCurr, _dataCharSet);//先求得截止位置，以免出现调到下一条记录取field的情况
-		//for (DataField& it = _data->begin(); ! _data->end(); it = _data->next())
+		char* pend = strchr(_pCurr, _dataCharSet);//先求得截止位置，以免出现跳到下一条记录取field的情况
+		if (!pend)//没有截止位置
+		{
+			if (_isStrictModel)
+			{
+				_pCurr = _pEnd;
+				return false;
+			}
+			pend = _pEnd;
+		}
+
+		
 		for (DataField* it = &(_data->begin()); !_data->end(); it = &(_data->next()))
 		{
 			if (_pCurr >= _pEnd) return false;
@@ -487,7 +537,15 @@ public:
 				_pCurr = _pEnd;
 				return false;
 			};
-			if (pos > pend) break;//已经调到下一个记录了;
+			if (pos > pend)//已经跳到下一个记录了;
+			{
+				if (_isStrictModel)
+				{
+					_pCurr = _pEnd;
+					return false;
+				}
+				break;
+			}
 			size_t len = pos - _pCurr;
 			assert(len > 0);
 			if (len > it->size()) len = it->size();
@@ -499,7 +557,7 @@ public:
 		if (!pos)
 		{
 			_pCurr = _pEnd;
-			return false;//如果是一个不完整的记录，已经保存部分字段，是否算完整记录？
+			if(_isStrictModel) return false;//如果是一个不完整的记录，已经保存部分字段，是否算完整记录？
 		}
 		_pCurr = pos + 1;
 		return true;
@@ -507,6 +565,8 @@ public:
 	bool end() {
 		return _pCurr > _pEnd;
 	}
+
+
 };
 
 
