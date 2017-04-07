@@ -73,11 +73,12 @@ public:
 
 	/*
 	批量更新语句(从文本）:
-	1.bulk(sqlserver)
-	2.load(mysql)
+	1.bulk(sqlserver) "bulk insert %s FROM '%s' WITH ( FORMATFILE = '%s') " 
+	2.load(mysql) load data LOCAL infile '%s' replace into table %s fields terminated by '%c' lines terminated by '%c' (ID,Cname,Status)
+	Insert into Table Values(?,?,?...),(?,?,?...)(?,?,?...) on duplicate key update coreid=values(coreid), coredivid=values(coredivid)... mysql only?
 	*/
 	string _bulkSQL;
-	//通过一次多条参数绑定，实现批量，形如:insert table(a,b,c) values(?,?,?),(?,?,?)....
+	//通过一次多条参数绑定，实现批量，形如:Insert into Table(a,b,c) values(?,?,?),(?,?,?),Update Tables set a=?,b=?,c=? 
 	bool bindParam(uint32_t coumuticountnt=1)
 	{
 		//clear at first
