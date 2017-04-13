@@ -1,6 +1,8 @@
 
 
-#pragma once
+#ifndef DATAHANDLE_H_
+#define DATAHANDLE_H_
+
 #include <typeinfo>
 #include <io.h>
 #include <fstream>
@@ -8,6 +10,8 @@
 #define MAX_BUFFER_SIZE 1024*1024
 #define MAX_DATA_BUFFER_COUNT 100
 #define MAX_DATA_SIZE 102400
+
+
 /*
 
 
@@ -33,7 +37,7 @@ public:
 		debug_msg("[default]" << *this);
 	};
 	DataField(string pname,string ptype,uint32_t psize,bool pisnull=true, string pdefaultvalue = "")
-		:name(pname),type(ptype),_size(psize),isnull(pisnull),defaultvalue(pdefaultvalue), _realsize(psize)
+		:name(pname),type(ptype),_size(psize),isnull(pisnull),defaultvalue(pdefaultvalue), _realsize(psize),isupdate(true)
 	{
 
 		pvalue = (char*)malloc(_realsize+1);
@@ -70,6 +74,7 @@ public:
 		isnull = other.isnull;
 		defaultvalue = other.defaultvalue;
 		_realsize = other._realsize;
+		isupdate = other.isupdate;
 	}
 
 	DataField& operator=(const DataField& other)
@@ -132,6 +137,7 @@ public:
 	bool	isnull;
 	string	defaultvalue;
 	char*	pvalue;
+	bool	isupdate;//是否需要更新数据库的字段
 };
 
 
@@ -577,3 +583,4 @@ static Writer<TigerData> w;
 static Reader<TigerData> r;
 
 
+#endif

@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="sqlapi">
+      <UniqueIdentifier>{ae7251a6-fcaf-4d64-9248-0b707e7d0202}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sqlapi\include">
+      <UniqueIdentifier>{0a52934e-6089-4af1-bf85-e4bd75a8013e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sqlapi\lib">
+      <UniqueIdentifier>{5ed8bc00-2ef5-4bb1-94fe-dd88706d6892}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -45,6 +54,9 @@
     <ClInclude Include="DataHandle.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="sqlapi\include\SQLAPI.h">
+      <Filter>sqlapi\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -65,5 +77,13 @@
     <ClCompile Include="DataHandle.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="sqlapi\lib\sqlapi.lib">
+      <Filter>sqlapi\lib</Filter>
+    </Library>
+    <Library Include="sqlapi\lib\sqlapid.lib">
+      <Filter>sqlapi\lib</Filter>
+    </Library>
   </ItemGroup>
 </Project>
