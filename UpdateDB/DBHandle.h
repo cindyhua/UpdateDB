@@ -139,8 +139,8 @@ public:
 		//then bind
 		for (DataField* it = &(_data->begin()); !_data->end(); it = &(_data->next()))
 		{
-
-			_cmd.CreateParam(it->name, getDataType(it->type));
+			SAString saname = it->name.c_str();
+			_cmd.CreateParam(saname, getDataType(it->type.c_str()));
 			paraminsertsql1 += it->name + ",";
 			paraminsertsql2 += ":" + it->name + ",";
 			paramupdatesql += it->name + "=:" + it->name + ",";
@@ -174,7 +174,7 @@ public:
 	SA_dtCursor    Sets parameter's value as Oracle REF CURSOR (SACommand).
 	SA_dtSpecificToDBMS    Sets parameter's value as server-specific data type value.  
 	*/
-	SADataType_t getDataType(string type)
+	SADataType_t getDataType(const char* type)
 	{
 		switch (type)
 		{
@@ -185,7 +185,7 @@ public:
 			case "Long":
 				return SA_dtLong;
 			case "Float":
-				return SA_dtFloat;
+				//return SA_dtFloat;
 			case "Double":
 				return SA_dtDouble;
 			case "Numeric":
