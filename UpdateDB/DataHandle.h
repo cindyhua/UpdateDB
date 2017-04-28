@@ -223,6 +223,31 @@ bool initSizeT()
 	T::_size = countSize();
 }
 
+class SyncData :public Data
+{
+	static size_t _size;
+public:
+	SyncData() {
+		column_add(USERID, INT, 10, false, "");
+		column_add(CNAME, STRING, 50, true, "");
+		column_add(AGE, STRING, 10, true, "");
+		column_add(SCHOOL, STRING, 1000, true, "");
+		column_add(WorkDesc, STRING, 1000, true, "");
+		column_add(EduDesc, STRING, 1000, true, "");
+		initSize();
+	};
+	~SyncData() {};
+	bool initSize() {
+		if (_size > 0) return true;
+		if (_size < 0) _size = 0;
+		_size = countSize();
+		return true;
+	}
+	static size_t size() {
+		return _size;
+	};
+};
+
 
  class TigerData :public Data
  {
@@ -575,11 +600,7 @@ public:
 
 };
 
-
 static Writer<TigerData> w;
-
-
-
 static Reader<TigerData> r;
 
 

@@ -14,13 +14,15 @@ int Test_sqlapi();
 int main()
 {
 	printf("start\r\n");
-	Test_basic();
+	//Test_basic();
+	Test_sqlapi();
 	system("pause");
 	return 0;
 }
 
 
-bool loadConf();
+bool loadConf(const char* file);
+bool checkConf();
 bool openDBConn();
 bool ini();
 bool beginThread();
@@ -43,24 +45,27 @@ int Test_sqlapi()
 	try
 	{
 		// connect to database (Oracle in our example)
-		con.Connect("test", "tester", "tester", SA_Oracle_Client);
+		//con.Connect("test", "tester", "tester", SA_Oracle_Client);
+		con.Connect("10.100.2.71@huaxin", "resume", "resume",SA_SQLServer_Client );
+		con.setAutoCommit(SA_AutoCommitOff);
 		// associate a command with connection
 		cmd.setConnection(&con);
 
 		// Insert 2 rows
 		cmd.setCommandText(
-			"Insert into test_tbl(fid, fvarchar20) values(:1, :2)");
+			"Insert into Student(Cname,Age) values(:1, :2)");
 
 		// use first method of binding - param assignment
-		cmd.Param(1).setAsLong() = 2;
-		cmd.Param(2).setAsString() = "Some string (2)";
+		cmd.Param(1).setAsString() = "huaxin";
+		cmd.Param(2).setAsLong() = 12;
 		// Insert first row
 		cmd.Execute();
 
 		// use second method of binding - stream binding
-		cmd << (long)3 << "Some string (3)";
+		//cmd << (long)3 << "Some string (3)";
+
 		// Insert second row
-		cmd.Execute();
+		//cmd.Execute();
 
 		// commit changes on success
 		con.Commit();
@@ -131,18 +136,19 @@ bool Test_DB()
 		//errlog
 		cout << "Á¬½ÓÊ§°Ü" << endl;
 	}
-	Reader<TigerData> rTigerData;
+	Reader<SyncData> rSyncData;
 	TigerData tp;
+	SyncData sd;
 	string file = "tmp";
 
 	size_t filesize = 0;
 	char* buffer = readfile(file.c_str(), filesize);
-	rTigerData.parse(buffer, buffer + filesize, tp);
-
+	rSyncData.parse(buffer, buffer + filesize, sd);
+	
 	db.bind(tp, "tiger", conn);
-	while (rTigerData.getValue())
+	while (rSyncData.getValue())
 	{
-		
+		tp.fields["CName"] = sd.fields["CName"];
 	}
 	delete[] buffer;
 	return true;

@@ -45,6 +45,7 @@ public:
 	string _tablename;
 	uint32_t _commitcount;
 	/*
+	
 	db.bind(td,"tiger",conn);
 	while(data.getValue())
 	{
@@ -176,37 +177,71 @@ public:
 	*/
 	SADataType_t getDataType(const char* type)
 	{
-		switch (type)
+		//switch (type)
+		//{
+		//	case "Bool":
+		//		return SA_dtBool;
+		//	case "Short":
+		//		return SA_dtShort;
+		//	case "Long":
+		//		return SA_dtLong;
+		//	case "Float":
+		//		//return SA_dtFloat;
+		//	case "Double":
+		//		return SA_dtDouble;
+		//	case "Numeric":
+		//		return SA_dtNumeric;
+		//	case "DateTime":
+		//		return SA_dtDateTime;
+		//	case "LongBinary":
+		//		return SA_dtLongBinary;
+		//	case "LongChar":
+		//		return SA_dtLongChar;
+		//	case "BLob":
+		//		return SA_dtBLob;
+		//	case "CLob":
+		//		return SA_dtCLob;
+		//	case "Cursor":
+		//		return SA_dtCursor;
+		//	case "SpecificToDBMS":
+		//		return SA_dtSpecificToDBMS;
+		//	default:
+		//		return SA_dtString;
+		//}
+		char t = type[0];
+		switch (t)
 		{
-			case "Bool":
-				return SA_dtBool;
-			case "Short":
-				return SA_dtShort;
-			case "Long":
-				return SA_dtLong;
-			case "Float":
-				//return SA_dtFloat;
-			case "Double":
-				return SA_dtDouble;
-			case "Numeric":
-				return SA_dtNumeric;
-			case "DateTime":
-				return SA_dtDateTime;
-			case "LongBinary":
-				return SA_dtLongBinary;
-			case "LongChar":
-				return SA_dtLongChar;
-			case "BLob":
-				return SA_dtBLob;
-			case "CLob":
-				return SA_dtCLob;
-			case "Cursor":
-				return SA_dtCursor;
-			case "SpecificToDBMS":
-				return SA_dtSpecificToDBMS;
+			case 'B':
+				if (strcmp(type, "Bool") == 0) return SA_dtBool;
+				if (strcmp(type, "BLob") == 0) return SA_dtBLob;
+				break;
+			case 'C':
+				if (strcmp(type, "CLob") == 0) return SA_dtCLob;
+				if (strcmp(type, "Cursor") == 0) return SA_dtCursor;
+				break;
+			case 'D':
+				if (strcmp(type, "Double") == 0) return SA_dtDouble;
+				if (strcmp(type, "DateTime") == 0) return SA_dtDateTime;
+				break;
+			case 'F':
+				if (strcmp(type, "Float") == 0) return SA_dtDouble;
+				break;
+			case 'S':
+				if (strcmp(type, "Short") == 0) return SA_dtShort;
+				if (strcmp(type, "SpecificToDBMS") == 0) return SA_dtSpecificToDBMS;
+				break;
+			case 'L':
+				if (strcmp(type, "Long") == 0) return SA_dtLong;
+				if (strcmp(type, "LongBinary") == 0) return SA_dtLongBinary;
+				if (strcmp(type, "LongChar") == 0) return SA_dtLongChar;
+				break;
+			case 'N':
+				if (strcmp(type, "Numeric") == 0) return SA_dtNumeric;
+				break;
 			default:
 				return SA_dtString;
 		}
+		return SA_dtString;
 	}
 
 	//两种加载参数值的方式，一种通过之前绑定的T对象引用，一种直接传入一个T对象的引用
